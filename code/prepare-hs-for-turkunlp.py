@@ -31,7 +31,6 @@ class Article:
         self.body = body
 
 def clean_text(txt: str):
-    otxt = txt
     # html formatting
     txt = txt.replace('<span class="ndash">&ndash;</span>','-')
     txt = regex.sub(r'<div[^>]*><div[^>]*></div></div>','\n',txt)
@@ -101,8 +100,11 @@ def clean_text(txt: str):
     txt = regex.sub(r"\n*$","",txt)
     return(txt)
 
+import ctypes
+
 def yield_articles(input_directory: str):
     with open(os.path.join(input_directory,"assets_output.csv")) as af:
+        csv.field_size_limit(int(ctypes.c_ulong(-1).value // 2))
         cr = csv.reader(af)
         next(cr)
         for row in cr:
