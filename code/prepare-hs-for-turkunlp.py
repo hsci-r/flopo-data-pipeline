@@ -98,13 +98,7 @@ def clean_text(txt: str):
     txt = regex.sub(r"^(- *-)+","- ", txt, flags=regex.MULTILINE)
     # remove superfluous paragraph breaks
     txt = regex.sub(r"\n\n\n+","\n\n",txt)
-    while True:
-        test: Optional[Match] = regex.search(r'</?[^>]*/?>|&\w+;',txt)
-        if test is not None:
-            logging.warn(f"Unhandled HTML element {test.group(0)} (in \"{txt[max(0,test.start(0)-30):min(len(txt),test.end(0)+30)]}\"). Replacing with empty string.")
-            txt = txt.replace(test.group(0),'')
-        else:
-            break
+    txt = regex.sub(r"\n*$","",txt)
     return(txt)
 
 def yield_articles(input_directory: str):
@@ -132,30 +126,30 @@ def process(input_directory: str, output_directory: str, split: int):
                 logging.info(f"Creating chunk {i}.")
                 co = open(os.path.join(output_directory,f"chunk-{i}.txt"),"w")
             if article.title != '':
-                co.write(f'\n###C: {article.id}_title\n')
+                co.write(f'###C: {article.id}_title\n')
                 co.write(article.title)
-                co.write('\n')
+                co.write('\n\n')
             if article.ingress != '':
-                co.write(f'\n###C: {article.id}_ingress\n')
+                co.write(f'###C: {article.id}_ingress\n')
                 co.write(article.ingress)
-                co.write('\n')
+                co.write('\n\n')
             if article.body != '':
-                co.write(f'\n###C: {article.id}_body\n')
+                co.write(f'###C: {article.id}_body\n')
                 co.write(article.body)
-                co.write('\n')
+                co.write('\n\n')
             i += 1
     finally:
         if co is not None:
             co.close()
 
 
-process("/Users/jiemakel/tyo/flopo-data-pipeline/data/input/hs_sample","/Users/jiemakel/tyo/flopo-data-pipeline/data/processed/hs_sample", 500)
+# process("/Users/jiemakel/tyo/flopo-data-pipeline/data/input/hs_sample","/Users/jiemakel/tyo/flopo-data-pipeline/data/processed/hs_sample", 500)
 
 
 # %%
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s","--split",type=int,help="number of articles to put in each file",default=50000)
+    parser.add_argument("-s","--split",type=int,help="number of articles to put in each file",default=5000)
     parser.add_argument("-i","--input-directory",help="input directory",required=True)
     parser.add_argument("-o","--output-directory",help="output directory",required=True)
     return(parser.parse_args())
