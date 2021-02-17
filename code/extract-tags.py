@@ -4,10 +4,12 @@ import csv
 import regex
 import json
 import argparse
+import ctypes
 
 def extract_tags(input_directory: str):
     d = {}
     with open(os.path.join(input_directory,"assets_output.csv")) as af:
+        csv.field_size_limit(int(ctypes.c_ulong(-1).value // 2))
         cr = csv.reader(af)
         next(cr)
         for row in cr:
