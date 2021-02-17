@@ -1,0 +1,8 @@
+name: flopo-data-pipeline
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - regex
+  - beautifulsoup4
+  - lxml
