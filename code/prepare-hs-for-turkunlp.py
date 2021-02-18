@@ -9,7 +9,7 @@ import json
 import argparse
 import regex
 import html
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup,NavigableString
 from typing import Optional
 
 from regex.regex import Match
@@ -77,16 +77,16 @@ def clean_text(txt: str):
     txt = txt.replace("”", "\"")
     txt = txt.replace("’", "'")  # rsquo
     txt = regex.sub(r"\p{Zs}", " ", txt)  # weird spaces
-    s = BeautifulSoup(txt,'lxml')
-    for bq in s.find_all('blockquote'):
-            if bq.string is not None:
-                bq.string = '- ' + bq.string
-            else:
-                bq.string = '- '
+    try: 
+        s = BeautifulSoup(txt,'lxml')
+        for bq in s.find_all('blockquote'):
+            bq.insert_before(NavigableString('- '))
             for text in bq.find_all(string=True):
                 text.replace_with(text.replace('\n',' '))
             bq.unwrap()
-    txt = s.get_text() # remove all other HTML
+        txt = s.get_text() # remove all other HTML
+    except:
+        logging.warn("BeautifulSoup parsing failed.")
     txt = html.unescape(txt)
 
     # missing quote separators
