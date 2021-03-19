@@ -6,3 +6,8 @@ dependencies:
   - regex
   - beautifulsoup4
   - lxml
+  - luigi
+  - plumbum
+  - pip
+  - pip:
+    - git+https://github.com/hsci-r/flopo-formats
