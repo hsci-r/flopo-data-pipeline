@@ -1,0 +1,150 @@
+{
+  "name": "Generic CONLL-CSV index template",
+  "version": "1.0.0",
+  "contentField": "text",
+  "contentTokensField": "nr_tokens",
+  "indexType": "MMapDirectory",
+  "levels": [
+    {
+      "id": "DOCUMENT",
+      "description": "a document",
+      "term": "document_id",
+      "indices": ["document_index"],
+      "fields": {
+        "title": {
+          "description": "document title",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "text"
+        },
+        "document_parts": {
+          "description": "number of distinct parts in the document",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraphs": {
+          "description": "number of paragraphs in the document",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the document",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        }
+      }
+    },
+    {
+      "id": "DOCUMENT_PART",
+      "description": "a part of the document",
+      "term": "document_part_id",
+      "indices": ["document_part_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the document part",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the document part",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        },
+        "paragraphs": {
+          "description": "number of paragraphs in the document",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the document",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        }
+      }
+    },
+    {
+      "id": "PARAGRAPH",
+      "description": "a paragraph",
+      "term": "paragraph_id",
+      "indices": ["paragraph_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the document part the paragraph is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraph_id": {
+          "description": "unique identifier for the paragraph",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the paragraph",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the part of the document the paragraph is part of",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        }
+      }
+    },
+    {
+      "id": "SENTENCE",
+      "description": "a sentence",
+      "term": "sentence_id",
+      "indices": ["sentence_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the document part the sentence is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraph_id": {
+          "description": "unique identifier for the paragraph the sentence is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentence_id": {
+          "description": "unique identifier for the sentence",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the part of the document the sentence is part of",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        }
+      }
+    }
+  ],
+  "defaultLevel": "DOCUMENT",
+  "commonFields": {
+    "document_id": {
+      "description": "unique identifier for the document",
+      "storedAs": "sortedDocValues",
+      "indexedAs": "string"
+    },
+    "text": {
+      "description": "the text of the content entity",
+      "storedAs": "singularStoredField",
+      "indexedAs": "text"
+    },
+    "nr_tokens": {
+      "description": "number of tokens detected in the content entity",
+      "storedAs": "numericDocValues",
+      "indexedAs": "intPoint"
+    },
+    "nr_characters": {
+      "description": "length in characters of the content entity",
+      "storedAs": "numericDocValues",
+      "indexedAs": "intPoint"
+    },
+    "conll": {
+      "description": "conll data for the content entity",
+      "storedAs": "singularStoredField",
+      "indexedAs": "none",
+      "containsJson": true
+    }
+  }
+}
