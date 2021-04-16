@@ -68,6 +68,7 @@ def clean_text(txt: str):
     txt = txt.replace("\x95", "-")
     txt = txt.replace("\x96", "-")
     txt = txt.replace("\x94", '"')
+    txt = txt.replace("\u2028"),"\n") # weird unicode line break
     txt = txt.replace("–", "-")  # ndash
     txt = txt.replace("—", "-")  # mdash
     txt = txt.replace("\-", "-")
