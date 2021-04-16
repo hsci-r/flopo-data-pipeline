@@ -152,26 +152,34 @@ object HSMetadataIndexer extends OctavoIndexer {
     for (row <- ar) if (row(1)=="article")
       articleInfo.put(row.head,ArticleInfo(row))
     var tasks = Seq(
-      runSequenceInOtherThread(
-        () => process(opts.index()+"/sentence_index",siw),
-        () => close(siw),
-        () => merge(opts.index()+"/sentence_metadata_index", null, opts.indexMemoryMb()/parts, null)
+      runInOtherThread(
+        () => {
+          process(opts.index() + "/sentence_index", siw)
+          close(siw)
+          merge(opts.index() + "/sentence_metadata_index", null, opts.indexMemoryMb() / parts, null)
+        }
       ),
-      runSequenceInOtherThread(
-        () => process(opts.index()+"/paragraph_index",piw),
-        () => close(piw),
-        () => merge(opts.index()+"/paragraph_metadata_index", null, opts.indexMemoryMb()/parts, null)
+      runInOtherThread(
+        () => {
+          process(opts.index()+"/paragraph_index",piw)
+          close(piw)
+          merge(opts.index()+"/paragraph_metadata_index", null, opts.indexMemoryMb()/parts, null)
+        }
       ),
-      runSequenceInOtherThread(
-        () => process(opts.index()+"/document_index",aiw),
-        () => close(aiw),
-        () => merge(opts.index()+"/document_metadata_index", null, opts.indexMemoryMb()/parts, null)
+      runInOtherThread(
+        () => {
+          process(opts.index()+"/document_index",aiw)
+          close(aiw)
+          merge(opts.index()+"/document_metadata_index", null, opts.indexMemoryMb()/parts, null)
+        }
       )
     )
-    if (opts.hasDocumentParts()) tasks = tasks :+ runSequenceInOtherThread(
-      () => process(opts.index()+"/document_part_index", dpiw),
-      () => close(dpiw),
-      () => merge(opts.index()+"/document_part_metadata_index", null, opts.indexMemoryMb()/parts, null)
+    if (opts.hasDocumentParts()) tasks = tasks :+ runInOtherThread(
+      () => {
+        process(opts.index()+"/document_part_index", dpiw)
+        close(dpiw)
+        merge(opts.index()+"/document_part_metadata_index", null, opts.indexMemoryMb()/parts, null)
+      }
     )
     waitForTasks(tasks:_*)
   }

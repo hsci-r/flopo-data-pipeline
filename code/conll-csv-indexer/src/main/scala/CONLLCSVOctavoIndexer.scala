@@ -374,11 +374,11 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
     pSort = if (hasDocumentParts) new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("document_part_id", SortField.Type.LONG), new SortField("paragraph_id", SortField.Type.LONG)) else new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("paragraph_id", SortField.Type.LONG))
     sSort = if (hasDocumentParts) new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("document_part_id", SortField.Type.LONG), new SortField("paragraph_id", SortField.Type.LONG), new SortField("sentence_id", SortField.Type.LONG)) else new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("paragraph_id", SortField.Type.LONG), new SortField("sentence_id", SortField.Type.LONG))
     val md = if (hasDocumentParts) 4 else 3
-    siw = iw(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
-    dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap()) else null
-    piw = iw(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
-    aiw = iw(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
     if (!opts.noIndex()) {
+      siw = iw(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
+      dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap()) else null
+      piw = iw(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
+      aiw = iw(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
       var rows = new ArrayBuffer[Array[String]]
       var lastDocumentId = ""
       feedAndProcessFedTasksInParallel(() => {
@@ -399,24 +399,31 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
         if (rows.nonEmpty) addTask(lastDocumentId, () => index(lastDocumentId, rows))
       })
     }
-    if (!opts.noMerge())
-      waitForTasks(
-        runSequenceInOtherThread(
-          () => close(siw),
-          () => merge(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
-        ),
-        runSequenceInOtherThread(
-          () => close(piw),
-          () => merge(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
-        ),
-        runSequenceInOtherThread(
-          () => if (dpiw!=null) dpiw.close(),
-          () => if (dpiw!=null) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
-        ),
-        runSequenceInOtherThread(
-          () => close(aiw),
-          () => merge(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
-        )
+    waitForTasks(
+      runInOtherThread(
+        () => {
+          if (!opts.noIndex()) close(siw)
+          if (!opts.noMerge()) merge(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
+        }
+      ),
+      runInOtherThread(
+        () => {
+          if (!opts.noIndex()) close(piw)
+          if (!opts.noMerge()) merge(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
+        }
+      ),
+      runInOtherThread(
+        () => if (dpiw!=null) {
+          if (!opts.noIndex()) dpiw.close()
+          if (!opts.noMerge() && dpiw!=null) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
+        }
+      ),
+      runInOtherThread(
+        () => {
+          if (!opts.noIndex()) close(aiw)
+          if (!opts.noMerge()) merge(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
+        }
       )
+    )
   }
 }
