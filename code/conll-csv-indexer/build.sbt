@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "com.github.tototoshi" %% "scala-csv" % "1.3.7",
 
   "org.json4s" %% "json4s-native" % "3.7.0-M15",
-  "fi.hsci" %% "octavo-indexer" % "1.1.5",
+  "fi.hsci" %% "octavo-indexer" % "1.1.7",
   "org.apache.lucene" % "lucene-core" % "8.8.1",
   "org.apache.lucene" % "lucene-analyzers-common" % "8.8.1",
 
