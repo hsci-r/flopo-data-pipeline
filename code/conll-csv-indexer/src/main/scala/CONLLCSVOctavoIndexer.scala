@@ -3,8 +3,10 @@ import fi.hsci.{FluidDocument, OctavoIndexer}
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute, OffsetAttribute, PositionIncrementAttribute}
 import org.apache.lucene.document.StoredField
+import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.search.{Sort, SortField}
+import org.apache.lucene.util.BytesRef
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import org.json4s.{JField, JNothing, JObject, JString, JValue}
@@ -52,8 +54,6 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
   }
 
   val termVectorFields = Seq("text")
-
-  //indexingCodec.termVectorFilter = (_: FieldInfo, b: BytesRef) => b.bytes(b.offset) == 'L' && b.length>1 && b.bytes(b.offset + 1) == '='
 
   case class TokenInfo(
                       documentId: String,
@@ -110,7 +110,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
         (position,whitespace)
       }))
         position match {
-          case "SpaceAfter" if whitespace!="No" => throw new IllegalArgumentException(s"SpaceAfter encountered but value is not No: ${whitespace}")
+          case "SpaceAfter" if whitespace!="No" => throw new IllegalArgumentException(s"SpaceAfter encountered but value is not No: $whitespace")
           case "SpaceAfter"  => after=""
           case "SpacesAfter" => after=whitespace
           case "SpacesBefore" => before=whitespace
@@ -262,7 +262,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
 
   private def index(documentId: String, documentRows: ArrayBuffer[Array[String]]): Unit = {
     val seq = processed.incrementAndGet()
-    if (seq%128==0) logger.info(f"Processing ${documentId}%s with ${documentRows.length}%,d tokens at ${durationToString(System.currentTimeMillis()-startTime)}%s. Processed ${seq}%,d documents, ${paragraphs.get}%,d paragraphs and ${sentences.get}%,d sentences (${1000*seq/(System.currentTimeMillis()-startTime)}%,d documents/s).")
+    if (seq%128==0) logger.info(f"Processing $documentId%s with ${documentRows.length}%,d tokens at ${durationToString(System.currentTimeMillis()-startTime)}%s. Processed $seq%,d documents, ${paragraphs.get}%,d paragraphs and ${sentences.get}%,d sentences (${1000*seq/(System.currentTimeMillis()-startTime)}%,d documents/s).")
     val r = tld.get
     r.documentIDFields.setValue(documentId)
     val idocumentTokens = documentRows.map(TokenInfo.apply)
@@ -361,9 +361,11 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       val indexPunctuation = opt[Boolean](default = Some(false))
       val indexConll = opt[Boolean](default = Some(false))
       val hasDocumentParts = opt[Boolean](default = Some(false))
+      val termVectorOnlyLemmas = opt[Boolean](default = Some(false))
       val titlePart = opt[String]()
       verify()
     }
+    if (opts.termVectorOnlyLemmas()) indexingCodec.termVectorFilter = (_: FieldInfo, b: BytesRef) => b.bytes(b.offset) == 'L' && b.length>1 && b.bytes(b.offset + 1) == '='
     indexPunctuation = opts.indexPunctuation()
     indexCONLL = opts.indexConll()
     hasDocumentParts = opts.hasDocumentParts()
@@ -372,10 +374,10 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
     pSort = if (hasDocumentParts) new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("document_part_id", SortField.Type.LONG), new SortField("paragraph_id", SortField.Type.LONG)) else new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("paragraph_id", SortField.Type.LONG))
     sSort = if (hasDocumentParts) new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("document_part_id", SortField.Type.LONG), new SortField("paragraph_id", SortField.Type.LONG), new SortField("sentence_id", SortField.Type.LONG)) else new Sort(new SortField("document_id",SortField.Type.STRING), new SortField("paragraph_id", SortField.Type.LONG), new SortField("sentence_id", SortField.Type.LONG))
     val md = if (hasDocumentParts) 4 else 3
-    siw = iw(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, !opts.noMmap())
-    dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, !opts.noMmap()) else null
-    piw = iw(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, !opts.noMmap())
-    aiw = iw(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, !opts.noMmap())
+    siw = iw(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
+    dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap()) else null
+    piw = iw(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
+    aiw = iw(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, mmapped = !opts.noMmap())
     if (!opts.noIndex()) {
       var rows = new ArrayBuffer[Array[String]]
       var lastDocumentId = ""
@@ -401,19 +403,19 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       waitForTasks(
         runSequenceInOtherThread(
           () => close(siw),
-          () => merge(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), !opts.noMmap())
+          () => merge(opts.index() + "/sentence_index", sSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
         ),
         runSequenceInOtherThread(
           () => close(piw),
-          () => merge(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), !opts.noMmap())
+          () => merge(opts.index() + "/paragraph_index", pSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
         ),
         runSequenceInOtherThread(
           () => if (dpiw!=null) dpiw.close(),
-          () => if (dpiw!=null) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), !opts.noMmap())
+          () => if (dpiw!=null) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
         ),
         runSequenceInOtherThread(
           () => close(aiw),
-          () => merge(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), !opts.noMmap())
+          () => merge(opts.index() + "/document_index", aSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
         )
       )
   }
