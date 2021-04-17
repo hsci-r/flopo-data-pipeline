@@ -413,9 +413,9 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
         }
       ),
       runInOtherThread(
-        () => if (dpiw!=null) {
-          if (!opts.noIndex()) dpiw.close()
-          if (!opts.noMerge() && dpiw!=null) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
+        () => if (hasDocumentParts) {
+          if (!opts.noIndex()) close(dpiw)
+          if (!opts.noMerge()) merge(opts.index() + "/document_part_index", dpSort, opts.indexMemoryMb() / md, toCodec(termVectorFields), mmapped = !opts.noMmap())
         }
       ),
       runInOtherThread(
