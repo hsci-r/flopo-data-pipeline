@@ -41,7 +41,7 @@ object HSMetadataIndexer extends OctavoIndexer {
   object NodeInfo {
     def apply(row: Seq[String]): NodeInfo =
     // fields: 0:id,1:product,2:parent,3:url,4:title,5:description,6:style,7:custom,8:nodetype,9:startdate,10:enddate
-      NodeInfo(if (row(2)=="") -1 else row(2).toInt,row(3),row(4),row(5),row(6),row(7),NodeType(row(8)),row(9))
+      NodeInfo(if (row(2)==null) -1 else row(2).toInt,row(3),row(4),row(5),row(6),row(7),NodeType(row(8)),row(9))
   }*/
 
   case class ArticleInfo(id: String, startDate: String, modifiedDate: String, storyLogo: Option[String], byLine: String, paid: Boolean, section: String, sectionUrl: String, editions: Iterable[String]) {
@@ -78,7 +78,7 @@ object HSMetadataIndexer extends OctavoIndexer {
         case JString(s) => Some(s)
       }
       val ceditions = if (!assetsToEditions.contains(row.head)) noEditions else assetsToEditions(row.head).map(editions(_))
-      val (section,sectionUrl) = if (row(8)=="") {
+      val (section,sectionUrl) = if (row(8)==null) {
         val sectionUrl = if (ceditions.isEmpty) {
           logger.warn("No node associations for "+row)
           "/unknown"
@@ -122,26 +122,31 @@ object HSMetadataIndexer extends OctavoIndexer {
   val assetsToEditions = new mutable.HashMap[String,mutable.HashSet[Int]]
   val articleInfo = new mutable.HashMap[String,ArticleInfo]
 
-  def parseCSV(f: String): Iterator[Array[String]] = new Iterator[Array[String]] {
+  def parseCSV(f: String, hasHeaders: Boolean = true): Iterator[Array[String]] = new Iterator[Array[String]] {
 
-    val p = new CsvParser(new CsvParserSettings())
-    p.beginParsing(new File(f))
+    private val s = new CsvParserSettings()
+    s.setHeaderExtractionEnabled(hasHeaders)
+    s.setMaxCharsPerColumn(-1)
+
+    val parser = new CsvParser(s)
+    parser.beginParsing(new File(f))
 
     var cur: Array[String] = _
 
     override def hasNext: Boolean = {
-      if (cur == null) cur = p.parseNext()
+      if (cur == null) cur = parser.parseNext()
       cur != null
     }
 
-    override def next: Array[String] = {
-      if (cur == null) return p.parseNext()
+    override def next(): Array[String] = {
+      if (cur == null) return parser.parseNext()
       val ret = cur
       cur = null
       ret
     }
 
   }
+
 
 
   def main(args: Array[String]): Unit = {
@@ -158,14 +163,14 @@ object HSMetadataIndexer extends OctavoIndexer {
     val dir = opts.directories().head
     val nr = parseCSV(dir+"/node_output.csv")
     logger.info("Reading "+dir+"/node_output.csv")
-    nr.next()
-    for (row <- nr)
-      // fields: 0:id,1:product,2:parent,3:url,4:title,5:description,6:style,7:custom,8:nodetype,9:startdate,10:enddate
+    // fields: 0:id,1:product,2:parent,3:url,4:title,5:description,6:style,7:custom,8:nodetype,9:startdate,10:enddate
+    for (row <- nr) {
       if (row(8)=="edition") editions.put(row.head.toInt,(row(4),row(3)))
       else sections.put(row.head.toInt,(row(4),row(3)))
+    }
     logger.info("Reading "+dir+"/aassetnoderelation_output.csv")
     val nar = parseCSV(dir+"/assetnoderelation_output.csv")
-    nar.next() // fields: 0:sourceid,1:sourceversion,2:sortorder,3:targetid,4:nodetype
+    // fields: 0:sourceid,1:sourceversion,2:sortorder,3:targetid,4:nodetype
     for (row <- nar) {
       val eid = row(3).toInt
       if (!editions.contains(eid)) logger.warn("Asset "+row.head+" links to non-edition node "+eid)
@@ -173,7 +178,7 @@ object HSMetadataIndexer extends OctavoIndexer {
     }
     logger.info("Reading "+dir+"/assets_output.csv")
     val ar = parseCSV(dir+"/assets_output.csv")
-    ar.next() // fields: id,resourcetype,startdate,modifieddate,title,data,custom,timestamp,nodeid,body,splitbody
+    // fields: id,resourcetype,startdate,modifieddate,title,data,custom,timestamp,nodeid,body,splitbody
     for (row <- ar) if (row(1)=="article")
       articleInfo.put(row.head,ArticleInfo(row))
     var tasks = Seq(

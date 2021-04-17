@@ -12,8 +12,8 @@ libraryDependencies ++= Seq(
 
   "org.json4s" %% "json4s-native" % "3.7.0-M15",
   "fi.hsci" %% "octavo-indexer" % "1.1.8",
-  "org.apache.lucene" % "lucene-core" % "8.8.1",
-  "org.apache.lucene" % "lucene-analyzers-common" % "8.8.1",
+  "org.apache.lucene" % "lucene-core" % "8.8.2",
+  "org.apache.lucene" % "lucene-analyzers-common" % "8.8.2",
 
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
