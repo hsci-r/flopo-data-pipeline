@@ -99,7 +99,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
 }
 
   object TokenInfo {
-    private def mapWhitespace(tokenIn: String, misc: String): (String,String,String) = if (misc=="") ("",tokenIn," ") else {
+    private def mapWhitespace(tokenIn: String, misc: String): (String,String,String) = if (misc==null) ("",tokenIn," ") else {
       var before = ""
       var after = " "
       var token = tokenIn
@@ -133,7 +133,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       val lemma = conllCSV(5)
       val upos = conllCSV(6)
       val xpos = conllCSV(7)
-      val feats: Seq[String] = if (conllCSV(8)=="") Seq.empty[String] else conllCSV(8).split('|')
+      val feats: Seq[String] = if (conllCSV(8)==null) Seq.empty[String] else conllCSV(8).split('|')
       val head = conllCSV(9).toInt
       val deprel = conllCSV(10)
       TokenInfo(documentId,documentPart,paragraphId,sentenceId,wordId,lcword,lemma,upos,xpos,feats,head,deprel,whitespaceBefore,token,whitespaceAfter)
@@ -357,20 +357,24 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
   var pSort = null.asInstanceOf[Sort]
   var sSort = null.asInstanceOf[Sort]
 
-  def parseCSV(f: String): Iterator[Array[String]] = new Iterator[Array[String]] {
+  def parseCSV(f: String, hasHeaders: Boolean = true): Iterator[Array[String]] = new Iterator[Array[String]] {
 
-    val p = new CsvParser(new CsvParserSettings())
-    p.beginParsing(new File(f))
+    private val s = new CsvParserSettings()
+    s.setHeaderExtractionEnabled(hasHeaders)
+    s.setMaxCharsPerColumn(-1)
+
+    val parser = new CsvParser(s)
+    parser.beginParsing(new File(f))
 
     var cur: Array[String] = _
 
     override def hasNext: Boolean = {
-      if (cur == null) cur = p.parseNext()
+      if (cur == null) cur = parser.parseNext()
       cur != null
     }
 
-    override def next: Array[String] = {
-      if (cur == null) return p.parseNext()
+    override def next(): Array[String] = {
+      if (cur == null) return parser.parseNext()
       val ret = cur
       cur = null
       ret
