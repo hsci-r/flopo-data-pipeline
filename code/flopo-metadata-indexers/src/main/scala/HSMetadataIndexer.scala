@@ -135,6 +135,7 @@ object HSMetadataIndexer extends OctavoIndexer {
     }
 
     override def next: Array[String] = {
+      if (cur == null) return p.parseNext()
       val ret = cur
       cur = null
       ret

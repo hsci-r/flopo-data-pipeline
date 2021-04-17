@@ -6,7 +6,7 @@ scalaVersion := "2.13.5"
 
 libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "4.0.2",
-  "com.github.tototoshi" %% "scala-csv" % "1.3.7",
+  "com.univocity" % "univocity-parsers" % "2.9.1",
 
   "org.json4s" %% "json4s-native" % "3.7.0-M15",
   "fi.hsci" %% "octavo-indexer" % "1.1.8",

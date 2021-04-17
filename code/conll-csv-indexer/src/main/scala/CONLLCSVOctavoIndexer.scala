@@ -1,4 +1,4 @@
-import com.github.tototoshi.csv.CSVReader
+import com.univocity.parsers.csv.{CsvParser, CsvParserSettings}
 import fi.hsci.{FluidDocument, OctavoIndexer}
 import org.apache.lucene.analysis.TokenStream
 import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute, OffsetAttribute, PositionIncrementAttribute}
@@ -11,6 +11,7 @@ import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import org.json4s.{JField, JNothing, JObject, JString, JValue}
 
+import java.io.File
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import scala.collection.mutable.ArrayBuffer
 
@@ -356,6 +357,27 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
   var pSort = null.asInstanceOf[Sort]
   var sSort = null.asInstanceOf[Sort]
 
+  def parseCSV(f: String): Iterator[Array[String]] = new Iterator[Array[String]] {
+
+    val p = new CsvParser(new CsvParserSettings())
+    p.beginParsing(new File(f))
+
+    var cur: Array[String] = _
+
+    override def hasNext: Boolean = {
+      if (cur == null) cur = p.parseNext()
+      cur != null
+    }
+
+    override def next: Array[String] = {
+      if (cur == null) return p.parseNext()
+      val ret = cur
+      cur = null
+      ret
+    }
+
+  }
+
   def main(args: Array[String]): Unit = {
     val opts = new AOctavoOpts(args) {
       val indexPunctuation = opt[Boolean](default = Some(false))
@@ -382,8 +404,8 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       var rows = new ArrayBuffer[Array[String]]
       var lastDocumentId = ""
       feedAndProcessFedTasksInParallel(() => {
-        val r = CSVReader.open(source)
-        r.readNext()
+        val r = parseCSV(source)
+        r.next()
         for (row <- r) {
           val split = row.head.indexOf('_')
           val newDocumentId = if (split == -1) row.head else row.head.substring(0, split)
@@ -394,7 +416,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
             rows = new ArrayBuffer[Array[String]]
             lastDocumentId = newDocumentId
           }
-          rows += row.toArray
+          rows += row
         }
         if (rows.nonEmpty) addTask(lastDocumentId, () => index(lastDocumentId, rows))
       })
