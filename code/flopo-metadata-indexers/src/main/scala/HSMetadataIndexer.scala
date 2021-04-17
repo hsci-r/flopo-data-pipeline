@@ -1,12 +1,13 @@
 package fi.hsci
 
-import com.github.tototoshi.csv.CSVReader
+import com.univocity.parsers.csv.{CsvParser, CsvParserSettings}
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
 import org.joda.time.format.DateTimeFormat
 import org.json4s.native.JsonMethods
 import org.json4s.{JBool, JNothing, JString}
 
+import java.io.File
 import java.nio.file.FileSystems
 import scala.collection.mutable
 
@@ -121,6 +122,27 @@ object HSMetadataIndexer extends OctavoIndexer {
   val assetsToEditions = new mutable.HashMap[String,mutable.HashSet[Int]]
   val articleInfo = new mutable.HashMap[String,ArticleInfo]
 
+  def parseCSV(f: String): Iterator[Array[String]] = new Iterator[Array[String]] {
+
+    val p = new CsvParser(new CsvParserSettings())
+    p.beginParsing(new File(f))
+
+    var cur: Array[String] = _
+
+    override def hasNext: Boolean = {
+      if (cur == null) cur = p.parseNext()
+      cur != null
+    }
+
+    override def next: Array[String] = {
+      val ret = cur
+      cur = null
+      ret
+    }
+
+  }
+
+
   def main(args: Array[String]): Unit = {
     val opts = new AOctavoOpts(args) {
       val hasDocumentParts = opt[Boolean](default = Some(false))
@@ -133,22 +155,24 @@ object HSMetadataIndexer extends OctavoIndexer {
     piw = iw(opts.index() + "/paragraph_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     aiw = iw(opts.index() + "/document_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     val dir = opts.directories().head
-    val nr = CSVReader.open(dir+"/node_output.csv")
-    nr.readNext()
+    val nr = parseCSV(dir+"/node_output.csv")
+    logger.info("Reading "+dir+"/node_output.csv")
+    nr.next()
     for (row <- nr)
       // fields: 0:id,1:product,2:parent,3:url,4:title,5:description,6:style,7:custom,8:nodetype,9:startdate,10:enddate
       if (row(8)=="edition") editions.put(row.head.toInt,(row(4),row(3)))
       else sections.put(row.head.toInt,(row(4),row(3)))
-    nr.close()
-    val nar = CSVReader.open(dir+"/assetnoderelation_output.csv")
-    nar.readNext() // fields: 0:sourceid,1:sourceversion,2:sortorder,3:targetid,4:nodetype
+    logger.info("Reading "+dir+"/aassetnoderelation_output.csv")
+    val nar = parseCSV(dir+"/assetnoderelation_output.csv")
+    nar.next() // fields: 0:sourceid,1:sourceversion,2:sortorder,3:targetid,4:nodetype
     for (row <- nar) {
       val eid = row(3).toInt
       if (!editions.contains(eid)) logger.warn("Asset "+row.head+" links to non-edition node "+eid)
       else assetsToEditions.getOrElseUpdate(row.head, new mutable.HashSet[Int]) += eid
     }
-    val ar = CSVReader.open(dir+"/assets_output.csv")
-    ar.readNext() // fields: id,resourcetype,startdate,modifieddate,title,data,custom,timestamp,nodeid,body,splitbody
+    logger.info("Reading "+dir+"/assets_output.csv")
+    val ar = parseCSV(dir+"/assets_output.csv")
+    ar.next() // fields: id,resourcetype,startdate,modifieddate,title,data,custom,timestamp,nodeid,body,splitbody
     for (row <- ar) if (row(1)=="article")
       articleInfo.put(row.head,ArticleInfo(row))
     var tasks = Seq(
