@@ -32,10 +32,8 @@ def yield_articles(input_directory: str) -> Iterator[Article]:
         with open(file) as af:
             for article in ijson.items(af, 'data.item'):
                 id = article['id']
-                if 'headline' in article:
-                    title = article['headline']['full']
-                if 'lead' in article:
-                    ingress = article['lead']
+                title = article['headline']['full'] if 'headline' in article else None
+                ingress = article['lead'] if 'lead' in article else None
                 body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content ]
                 yield Article(id,title,ingress,body)
 
