@@ -8,6 +8,8 @@ dependencies:
   - lxml
   - luigi
   - plumbum
+  - ijson
+  - yajl
   - pip
   - pip:
     - git+https://github.com/hsci-r/flopo-formats
