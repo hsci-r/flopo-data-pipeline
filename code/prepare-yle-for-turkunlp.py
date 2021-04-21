@@ -8,6 +8,8 @@ from typing import Iterator, Optional
 import ijson.backends.yajl2_cffi as ijson
 import argparse
 import glob
+import functools
+import multiprocessing
 from utils.clean_text import clean_text
 
 logging.basicConfig(level=logging.INFO)
@@ -26,41 +28,40 @@ class Article:
         self.ingress = ingress
         self.body = body
 
-def yield_articles(input_directory: str) -> Iterator[Article]:
-    for file in glob.glob(os.path.join(input_directory,"**","*.json"),recursive=True):
-        logging.info(f"Processing {file}")
-        with open(file) as af:
-            for article in ijson.items(af, 'data.item'):
-                id = article['id']
-                title = article['headline']['full'] if 'headline' in article else None
-                ingress = article['lead'] if 'lead' in article else None
-                body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content ]
-                yield Article(id,title,ingress,body)
+def yield_articles(file: str) -> Iterator[Article]:
+    logging.info(f"Processing {file}")
+    with open(file) as af:
+        for article in ijson.items(af, 'data.item'):
+            id = article['id']
+            title = article['headline']['full'] if 'headline' in article else None
+            ingress = article['lead'] if 'lead' in article else None
+            body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content ]
+            yield Article(id,title,ingress,body)
 
-def process(input_directory: str, output_directory: str, split: int):
-    os.makedirs(output_directory,exist_ok=True)
-    i = 0
+def process(prefix: int,input_files: list[str], output_directory: str, split: int):
     co = None
+    i = 0
     try:
-        for article in yield_articles(input_directory):
-            if i % split == 0:
-                if co is not None:
-                    co.close()
-                logging.info(f"Creating chunk {i}.")
-                co = open(os.path.join(output_directory,f"chunk-{i}.txt"),"w")
-            if article.title is not None:
-                co.write(f'###C: {article.id}_title\n')
-                co.write(article.title)
-                co.write('\n\n')
-            if article.ingress is not None:
-                co.write(f'###C: {article.id}_ingress\n')
-                co.write(article.ingress)
-                co.write('\n\n')
-            for (index,text) in article.body:
-                co.write(f'###C: {article.id}_body_{index}\n')
-                co.write(text)
-                co.write('\n\n')
-            i += 1
+        for input_file in input_files:
+            for article in yield_articles(input_file):
+                if i % split == 0:
+                    if co is not None:
+                        co.close()
+                    logging.info(f"Creating chunk {prefix}-{i}.")
+                    co = open(os.path.join(output_directory,f"chunk-{prefix}-{i}.txt"),"w")
+                if article.title is not None:
+                    co.write(f'###C: {article.id}_title\n')
+                    co.write(article.title)
+                    co.write('\n\n')
+                if article.ingress is not None:
+                    co.write(f'###C: {article.id}_ingress\n')
+                    co.write(article.ingress)
+                    co.write('\n\n')
+                for (index,text) in article.body:
+                    co.write(f'###C: {article.id}_body_{index}\n')
+                    co.write(text)
+                    co.write('\n\n')
+                i += 1
     finally:
         if co is not None:
             co.close()
@@ -75,13 +76,21 @@ def parse_arguments():
     parser.add_argument("-s","--split",type=int,help="number of articles to put in each file",default=5000)
     parser.add_argument("-i","--input-directory",help="input directory",required=True)
     parser.add_argument("-o","--output-directory",help="output directory",required=True)
+    parser.add_argument("-p","--processes",help="number of processes to use",type=int,default=multiprocessing.cpu_count())
     return(parser.parse_args())
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 def main() -> None:
     args = parse_arguments()
-    process(args.input_directory,args.output_directory,args.split)
-                
+    os.makedirs(args.output_directory,exist_ok=True)
+    files = glob.glob(os.path.join(args.input_directory,"**","*.json"),recursive=True)
+    cores = args.processes
+    with multiprocessing.Pool(cores) as p:
+        p.starmap(functools.partial(process,output_directory=args.output_directory,split=args.split),enumerate(chunks(files,cores)))
 
 if __name__ == '__main__':
     main()

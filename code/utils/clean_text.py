@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup,NavigableString
 import logging
 
 import warnings
-warnings.filterwarnings("ignore", message='.*looks like a URL.*', category=UserWarning, module='bs4')
+warnings.filterwarnings("ignore", message='.*looks like a.*', category=UserWarning, module='bs4')
 
 def clean_text(txt: str) -> str:
     # html formatting
