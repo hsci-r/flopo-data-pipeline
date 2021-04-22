@@ -35,7 +35,7 @@ def yield_articles(file: str) -> Iterator[Article]:
             id = article['id']
             title = article['headline']['full'] if 'headline' in article else None
             ingress = article['lead'] if 'lead' in article else None
-            body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content ]
+            body = [ (index,clean_text(get_text(content['text']))) for index,content in enumerate(article['content']) if 'text' in content and type(content['text']) is str]
             yield Article(id,title,ingress,body)
 
 def process(prefix: int,input_files: list[str], output_directory: str, split: int):
@@ -76,7 +76,7 @@ def parse_arguments():
     parser.add_argument("-s","--split",type=int,help="number of articles to put in each file",default=5000)
     parser.add_argument("-i","--input-directory",help="input directory",required=True)
     parser.add_argument("-o","--output-directory",help="output directory",required=True)
-    parser.add_argument("-p","--processes",help="number of processes to use",type=int,default=multiprocessing.cpu_count())
+    parser.add_argument("-p","--processes",help="number of processes to use",type=int,default=len(os.sched_getaffinity(0)))
     return(parser.parse_args())
 
 def chunks(lst, n):
@@ -90,7 +90,7 @@ def main() -> None:
     files = glob.glob(os.path.join(args.input_directory,"**","*.json"),recursive=True)
     cores = args.processes
     with multiprocessing.Pool(cores) as p:
-        p.starmap(functools.partial(process,output_directory=args.output_directory,split=args.split),enumerate(chunks(files,cores)))
+       p.starmap(functools.partial(process,output_directory=args.output_directory,split=args.split),enumerate(chunks(files,len(files)//cores)))
 
 if __name__ == '__main__':
     main()
