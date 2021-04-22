@@ -2,7 +2,6 @@
 
 import luigi
 from plumbum import local, FG
-from plumbum.cmd import docker
 import glob
 import re
 import os
@@ -22,20 +21,26 @@ class PrepareForTurkuNLP(ForceableTask):
     def output(self):
         return luigi.LocalTarget(f'data/processed/for-turkunlp/{self.dataset}')
     def run_internal(self):
-        shutil.rmtree(self.output().path)
+        shutil.rmtree(self.output().path,ignore_errors=True)
         logAndExecute(local[f"./code/prepare-{self.dataset}-for-turkunlp.py"]['-i',f'data/input/{self.dataset}','-o',self.output().path,'-s',self.split])
 
 class TurkuNLPChunk(ForceableTask):
     dataset = luigi.Parameter()
     chunk = luigi.Parameter()
+    container_system = luigi.Parameter()
     def output(self):
         return luigi.LocalTarget(f'data/processed/conll/{self.dataset}/chunk-{self.chunk}.conll')
     def run_internal(self):
         self.output().makedirs()
-        logAndExecute((docker['run','-i','hsci/turku-neural-parser-openshift:latest'] < f'data/processed/for-turkunlp/{self.dataset}/chunk-{self.chunk}.txt') > self.output().path)
+        if self.container_system == 'singularity':
+            container_command = local['singularity']['run','docker://hsci/turku-neural-parser-openshift:latest']
+        else:
+            container_command = local['docker']['run','-i','hsci/turku-neural-parser-openshift:latest']
+        logAndExecute((container_command < f'data/processed/for-turkunlp/{self.dataset}/chunk-{self.chunk}.txt') > self.output().path)
 
 class TurkuNLP(ForceableTask):
     dataset = luigi.Parameter()
+    container_system = luigi.Parameter()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.done = False
@@ -44,8 +49,8 @@ class TurkuNLP(ForceableTask):
     def run_internal(self):
         tasks = []
         for source in glob.glob(f'data/processed/for-turkunlp/{self.dataset}/chunk-*.txt'):
-            chunk = re.match(".*chunk-(\d+).txt",source).group(1)
-            tasks.append(TurkuNLPChunk(dataset=self.dataset,chunk=chunk))
+            chunk = re.match(".*chunk-(.+)\.txt",source).group(1)
+            tasks.append(TurkuNLPChunk(dataset=self.dataset,container_system=self.container_system,chunk=chunk))
         yield tasks
         self.done = True
 
@@ -59,12 +64,13 @@ class CONLLToCSV(ForceableTask):
 class Pipeline(ForceableTask):
     dataset = luigi.Parameter(description='Dataset to process')
     split = luigi.IntParameter(default=200000,description='Number of articles to put in a single file')
+    container_system = luigi.Parameter(default='docker',description='Container system to use')
     done = False
     def complete(self):
         return self.done
     def run_internal(self):
         yield PrepareForTurkuNLP(dataset=self.dataset,split=self.split)
-        yield TurkuNLP(dataset=self.dataset)
+        yield TurkuNLP(dataset=self.dataset,container_system=self.container_system)
         yield CONLLToCSV(dataset=self.dataset)
         self.done = True
 
