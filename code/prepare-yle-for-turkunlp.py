@@ -32,12 +32,16 @@ class Article:
 def yield_articles(file: str) -> Iterator[Article]:
     logging.info(f"Processing {file}")
     with open(file) as af:
-        for article in ijson.items(af, 'data.item'):
-            id = article['id']
-            title = article['headline']['full'] if 'headline' in article else None
-            ingress = article['lead'] if 'lead' in article else None
-            body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content and type(content['text']) is str]
-            yield Article(id,title,ingress,body)
+        try:
+            for article in ijson.items(af, 'data.item'):
+                id = article['id']
+                title = article['headline']['full'] if 'headline' in article else None
+                ingress = article['lead'] if 'lead' in article else None
+                body = [ (index,clean_text(content['text'])) for index,content in enumerate(article['content']) if 'text' in content and type(content['text']) is str]
+                yield Article(id,title,ingress,body)
+        except Exception as e:
+            logging.error(f"Exception parsing {file}.")
+            raise
 
 def process(prefix: int,input_files: list[str], output_directory: str, split: int):
     co = None
