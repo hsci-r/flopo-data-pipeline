@@ -10,6 +10,7 @@ import argparse
 import glob
 import functools
 import multiprocessing
+import itertools
 from utils.clean_text import clean_text
 
 logging.basicConfig(level=logging.INFO)
@@ -74,7 +75,7 @@ def process(prefix: int,input_files: list[str], output_directory: str, split: in
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--split",type=int,help="number of articles to put in each file",default=5000)
-    parser.add_argument("-i","--input-directory",help="input directory",required=True)
+    parser.add_argument("-i","--input-directory",help="input directory",nargs="+")
     parser.add_argument("-o","--output-directory",help="output directory",required=True)
     parser.add_argument("-p","--processes",help="number of processes to use",type=int,default=len(os.sched_getaffinity(0)) if hasattr(os,'sched_getaffinity') else os.cpu_count())
     return(parser.parse_args())
@@ -87,10 +88,10 @@ def chunks(lst, n):
 def main() -> None:
     args = parse_arguments()
     os.makedirs(args.output_directory,exist_ok=True)
-    files = glob.glob(os.path.join(args.input_directory,"**","*.json"),recursive=True)
+    files = list(itertools.chain.from_iterable([ glob.glob(os.path.join(input_directory,"**","*.json"),recursive=True) for input_directory in args.input_directory]))
     cores = args.processes
     with multiprocessing.Pool(cores) as p:
-       p.starmap(functools.partial(process,output_directory=args.output_directory,split=args.split),enumerate(chunks(files,len(files)//cores)))
+       p.starmap(functools.partial(process,output_directory=args.output_directory,split=args.split),enumerate(chunks(files,max(1,len(files)//cores))))
 
 if __name__ == '__main__':
     main()
