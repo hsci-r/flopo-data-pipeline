@@ -27,9 +27,9 @@ def main() -> None:
     logging.info(f"Filter has {len(filter)} identifiers")
     with open(args.output,'w') as ow:
         ow.write('{ "data": [\n')
+        first = True
         for file in glob.glob(os.path.join(args.input_directory,"**","*.json"),recursive=True):
             logging.info(f"Processing {file}...")
-            first = True
             with open(file) as af:
                 for article in ijson.items(af, 'data.item',use_float=True):
                     year_published = int(article['datePublished'][:4])
