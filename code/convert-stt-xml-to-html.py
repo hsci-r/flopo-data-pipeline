@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from lxml import etree
 import os
 import argparse
 import glob
@@ -43,7 +42,15 @@ def main():
                         line = next(ir)
                         while line != "</contentMeta>\n":
                             if line.startswith("<headline>"):
-                                headline=re.match('<headline>(.*)</headline>',line).group(1)
+                                if "</headline>" in line:
+                                    headline=re.match('<headline>(.*)</headline>',line).group(1)
+                                else: 
+                                    while not "</headline>" in line:
+                                        headline = headline + line
+                                        contentMeta.append(line.replace("<","&lt;").replace(">","&gt;") + "<br />\n")
+                                        line = next(ir)
+                                    headline  = headline + line
+                                    headline=re.match('<headline>(.*)</headline>',headline,re.DOTALL).group(1)
                             elif line.startswith("<contentCreated>"):
                                 contentCreated=re.match('<contentCreated>(.*)</contentCreated>',line).group(1)
                             contentMeta.append(line.replace("<","&lt;").replace(">","&gt;") + "<br />\n")
