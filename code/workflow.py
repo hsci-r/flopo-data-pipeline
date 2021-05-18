@@ -57,8 +57,9 @@ class TurkuNLP(ForceableTask):
 class CONLLToCSV(ForceableTask):
     dataset = luigi.Parameter()
     def output(self):
-        return luigi.LocalTarget(f'data/processed/csv/{self.dataset}-conll.csv')
+        return luigi.LocalTarget(f'data/processed/conll-csv/{self.dataset}/{self.dataset}-conll.csv')
     def run_internal(self):
+        self.output().makedirs()
         logAndExecute(local['flopo-convert']['-f','conll','-t','csv','-r','-i',f'data/processed/conll/{self.dataset}','-o',self.output().path])
 
 class Pipeline(ForceableTask):
