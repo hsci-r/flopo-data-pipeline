@@ -124,7 +124,15 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       //documentId,paragraphId,sentenceId,wordId,word,lemma,upos,xpos,feats,head,deprel,misc
       val rdocumentId = conllCSV.head
       val split = rdocumentId.indexOf('_')
-      val (documentId,documentPart) = if (split != -1) (rdocumentId.substring(0,split),rdocumentId.substring(split+1)) else (rdocumentId,"")
+      val (documentId,documentPart) = if (split != -1) {
+        val documentId = rdocumentId.substring(0,split)
+        var documentPart = rdocumentId.substring(split+1)
+        // handle ids of the form articleid_body_1
+        val split2 = documentPart.indexOf('_')
+        if (split2 != -1)
+          documentPart = documentPart.substring(0,split2)
+        (documentId,documentPart)
+      } else (rdocumentId,"")
       val paragraphId = conllCSV(1).toInt
       val sentenceId = conllCSV(2).toInt
       val wordId = conllCSV(3).toInt
