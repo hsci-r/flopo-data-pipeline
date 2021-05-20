@@ -96,7 +96,7 @@ object YLEMetadataIndexer extends OctavoIndexer {
             case string2: JString => Some(string2.values)
             case _ => None
           }
-          articleInfos.put(id,ArticleInfo(id,url,startDate,modifiedDate,section,coverage,sources))
+          articleInfos.synchronized(articleInfos.put(id,ArticleInfo(id,url,startDate,modifiedDate,section,coverage,sources)))
           token = p.nextToken // OpenObj/CloseArr
         }
       })
