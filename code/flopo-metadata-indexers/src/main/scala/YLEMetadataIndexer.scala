@@ -2,7 +2,7 @@ package fi.hsci
 
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
-import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 import org.json4s.{JString, _}
 import org.json4s.native.JsonParser.{FieldStart, Parser, parse, _}
 
@@ -18,8 +18,8 @@ object YLEMetadataIndexer extends OctavoIndexer {
     val url = new StringSDVFieldPair("url").r(d)
     val section = new StringSDVFieldPair("section").r(d)
     val storyLogo = new StringSDVFieldPair("story_logo").o(d)
-    val creationTime = new LongPointSDVDateTimeFieldPair("time_created",DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZZ")).r(d)
-    val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZZ")).r(d)
+    val creationTime = new LongPointSDVDateTimeFieldPair("time_created",ISODateTimeFormat.dateTimeNoMillis).r(d)
+    val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",ISODateTimeFormat.dateTimeNoMillis).r(d)
     val coverageFields = new StringSDVFieldPair("coverage").o(d)
     val sourcesFields = new TextSDVFieldPair("sources").o(d)
     def clean() {
