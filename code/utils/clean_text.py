@@ -19,7 +19,7 @@ def clean_text(txt: str) -> str:
     txt = txt.replace('<span class="pi_BlackSquare">&nbsp;</span>',' * ')
     txt = regex.sub(r'<p class="videoplaceholder"[^>]*>&nbsp;?</p>','',txt)
     txt = txt.replace('<li>',' * ').replace('</li>','')
-    txt = txt.replace('<h2[^>]*>','\n').replace('</h2>','\n\n')
+    txt = txt.replace('<h[0-9][^>]*>','\n').replace('</h[0-9]>','\n\n')
     txt = txt.replace('</p>','\n\n').replace('<p[^>]*>','')
     txt = txt.replace('<br />','\n')
     txt = regex.sub(r'<iframe[^>]*></iframe ?>','',txt)
