@@ -2,9 +2,9 @@ package fi.hsci
 
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
-import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
-import org.json4s.{JString, _}
+import org.joda.time.format.ISODateTimeFormat
 import org.json4s.native.JsonParser.{FieldStart, Parser, parse, _}
+import org.json4s.{JString, _}
 
 import java.io.{File, FileInputStream, InputStreamReader}
 import java.nio.file.FileSystems

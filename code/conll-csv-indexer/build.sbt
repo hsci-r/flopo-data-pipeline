@@ -9,7 +9,7 @@ libraryDependencies ++= Seq(
   "com.univocity" % "univocity-parsers" % "2.9.1",
 
   "org.json4s" %% "json4s-native" % "3.7.0-M15",
-  "fi.hsci" %% "octavo-indexer" % "1.1.8",
+  "fi.hsci" %% "octavo-indexer" % "1.1.9",
   "org.apache.lucene" % "lucene-core" % "8.8.2",
 
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
