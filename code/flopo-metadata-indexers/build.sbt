@@ -4,14 +4,12 @@ version := "0.1"
 
 scalaVersion := "2.13.5"
 
-idePackagePrefix := Some("fi.hsci")
-
 libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "4.0.2",
   "com.univocity" % "univocity-parsers" % "2.9.1",
 
   "org.json4s" %% "json4s-native" % "3.7.0-M15",
-  "fi.hsci" %% "octavo-indexer" % "1.2.1",
+  "fi.hsci" %% "octavo-indexer" % "1.2.2",
   "org.apache.lucene" % "lucene-core" % "8.8.2",
   "org.apache.lucene" % "lucene-analyzers-common" % "8.8.2",
 

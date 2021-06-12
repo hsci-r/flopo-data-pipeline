@@ -154,6 +154,7 @@ object HSMetadataIndexer extends OctavoIndexer {
       val hasDocumentParts = opt[Boolean](default = Some(false))
       verify()
     }
+    numWorkers = opts.workers()
     hasDocumentParts = opts.hasDocumentParts()
     val parts = if (hasDocumentParts) 4 else 3
     siw = iw(opts.index() + "/sentence_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())

@@ -399,6 +399,7 @@ object CONLLCSVOctavoIndexer extends OctavoIndexer {
       val titlePart = opt[String]()
       verify()
     }
+    numWorkers = opts.workers()
     if (opts.termVectorOnlyLemmas()) indexingCodec.termVectorFilter = (_: FieldInfo, b: BytesRef) => b.bytes(b.offset) == 'L' && b.length>1 && b.bytes(b.offset + 1) == '='
     indexPunctuation = opts.indexPunctuation()
     indexCONLL = opts.indexConll()
