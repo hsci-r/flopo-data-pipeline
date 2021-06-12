@@ -4,7 +4,7 @@ import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.native.JsonParser.{FieldStart, Parser, parse, _}
-import org.json4s.{JString, _}
+import org.json4s.{JArray, JString, _}
 
 import java.io.{File, FileInputStream, InputStreamReader}
 import java.nio.file.FileSystems
@@ -22,12 +22,13 @@ object YLEMetadataIndexer extends OctavoIndexer {
     val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",ISODateTimeFormat.dateTimeNoMillis).r(d)
     val coverageFields = new StringSDVFieldPair("coverage").o(d)
     val sourcesFields = new TextSDVFieldPair("sources").o(d)
+    //val subjectsFields = new StringSSDVFieldPair("subject").o(d)
     def clean() {
       d.clearOptional()
     }
   }
 
-  case class ArticleInfo(id: String, url: String, startDate: String, modifiedDate: String, section: String,coverage: Option[String],sources: Option[String]) {
+  case class ArticleInfo(id: String, url: String, startDate: String, modifiedDate: String, section: String,coverage: Option[String],sources: Option[String], subjects: Seq[String]) {
     def populate(r: Reuse): Unit = {
       r.clean()
       r.url.setValue(url)
@@ -36,6 +37,7 @@ object YLEMetadataIndexer extends OctavoIndexer {
       r.section.setValue(section)
       coverage.foreach(r.coverageFields.setValue)
       sources.foreach(r.sourcesFields.setValue)
+      subjects.foreach(new StringSSDVFieldPair("subject").o(r.d).setValue(_))
     }
   }
 
@@ -96,7 +98,16 @@ object YLEMetadataIndexer extends OctavoIndexer {
             case string2: JString => Some(string2.values)
             case _ => None
           }
-          articleInfos.synchronized(articleInfos.put(id,ArticleInfo(id,url,startDate,modifiedDate,section,coverage,sources)))
+          val subjects = (obj \ "subjects") match {
+            case a: JArray => a.arr.filter(
+              _ \ "exactMatch" match {
+                case em: JArray => em.arr.exists(_.asInstanceOf[JString].values.startsWith("escenic:"))
+                case _ => false
+              }
+            ).map(t => (t \ "title" \ "fi").asInstanceOf[JString].values)
+            case _ => Seq.empty
+          }
+          articleInfos.synchronized(articleInfos.put(id,ArticleInfo(id,url,startDate,modifiedDate,section,coverage,sources,subjects)))
           token = p.nextToken // OpenObj/CloseArr
         }
       })
