@@ -1,0 +1,185 @@
+{
+  "name": "YLE Finnish news 1998-2018",
+  "version": "1.0.0",
+  "contentField": "text",
+  "contentTokensField": "nr_tokens",
+  "indexType": "MMapDirectory",
+  "levels": [
+    {
+      "id": "ARTICLE",
+      "description": "an article",
+      "term": "document_id",
+      "indices": ["document_index","document_metadata_index"],
+      "fields": {
+        "title": {
+          "description": "article headline",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "text"
+        },
+        "document_parts": {
+          "description": "number of distinct parts in the article",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraphs": {
+          "description": "number of paragraphs in the article",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the article",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        }
+      }
+    },
+    {
+      "id": "ARTICLE_PART",
+      "description": "a part of an article",
+      "term": "document_part_id",
+      "indices": ["document_part_index","document_part_metadata_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the article part",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the article part",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        },
+        "paragraphs": {
+          "description": "number of paragraphs in the article",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the article",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        }
+      }
+    },
+    {
+      "id": "PARAGRAPH",
+      "description": "a paragraph",
+      "term": "paragraph_id",
+      "indices": ["paragraph_index","paragraph_metadata_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the article part the paragraph is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraph_id": {
+          "description": "unique identifier for the paragraph",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentences": {
+          "description": "number of sentences in the paragraph",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the part of the article the paragraph is part of",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        }
+      }
+    },
+    {
+      "id": "SENTENCE",
+      "description": "a sentence",
+      "term": "sentence_id",
+      "indices": ["sentence_index","sentence_metadata_index"],
+      "fields": {
+        "document_part_id": {
+          "description": "unique identifier for the article part the sentence is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "paragraph_id": {
+          "description": "unique identifier for the paragraph the sentence is part of",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "sentence_id": {
+          "description": "unique identifier for the sentence",
+          "storedAs": "numericDocValues",
+          "indexedAs": "intPoint"
+        },
+        "document_part": {
+          "description": "the name of the part of the article the sentence is part of",
+          "storedAs": "sortedDocValues",
+          "indexedAs": "string"
+        }
+      }
+    }
+  ],
+  "defaultLevel": "ARTICLE",
+  "commonFields": {
+    "document_id": {
+      "description": "unique identifier for the article",
+      "storedAs": "sortedDocValues",
+      "indexedAs": "string"
+    },
+    "text": {
+      "description": "the text of the content entity",
+      "storedAs": "singularStoredField",
+      "indexedAs": "text"
+    },
+    "nr_tokens": {
+      "description": "number of tokens detected in the content entity",
+      "storedAs": "numericDocValues",
+      "indexedAs": "intPoint"
+    },
+    "nr_characters": {
+      "description": "length in characters of the content entity",
+      "storedAs": "numericDocValues",
+      "indexedAs": "intPoint"
+    },
+    "conll": {
+      "description": "conll data for the content entity",
+      "storedAs": "singularStoredField",
+      "indexedAs": "none",
+      "containsJson": true
+    },
+    "url": {
+      "description": "original URL for article",
+      "indexedAs": "string",
+      "storedAs": "sortedDocValues"
+    },
+    "section": {
+      "description": "news section",
+      "indexedAs": "string",
+      "storedAs": "sortedDocValues"
+    },
+    "subject": {
+      "description": "subsection/subject",
+      "indexedAs": "string",
+      "storedAs": "sortedSetDocValues"
+    },
+    "time_created": {
+      "description": "original creation time for the article",
+      "indexedAs": "longPoint",
+      "storedAs": "sortedDocValues"
+    },
+    "time_modified": {
+      "description": "last modification time for the article",
+      "indexedAs": "longPoint",
+      "storedAs": "sortedDocValues"
+    },
+    "coverage": {
+      "description": "article coverage",
+      "storedAs": "sortedDocValues",
+      "indexedAs": "string"
+    },
+    "sources": {
+      "description": "article sources",
+      "indexedAs": "text",
+      "storedAs": "sortedDocValues"
+    }
+  }
+}
