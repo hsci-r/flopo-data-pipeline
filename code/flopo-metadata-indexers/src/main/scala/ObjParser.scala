@@ -4,7 +4,7 @@ import org.json4s._
 import org.json4s.native.JsonParser._
 
 object ObjParser {
-  
+
    private class ValStack(parser: Parser) {
     import java.util.LinkedList
     private[this] val stack = new LinkedList[Any]()
@@ -23,7 +23,7 @@ object ObjParser {
 
     def peekOption = if (stack.isEmpty) None else Some(stack.peek)
   }
-  
+
   def parseObject(p: Parser, initialToken: Option[Token] = None): JValue = {
     val vals = new ValStack(p)
     var token: Token = null

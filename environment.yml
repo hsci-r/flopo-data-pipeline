@@ -10,6 +10,9 @@ dependencies:
   - plumbum
   - ijson
   - yajl
+  - autopep8
+  - pre-commit
+  - pylint
   - pip
   - pip:
     - git+https://github.com/hsci-r/flopo-formats

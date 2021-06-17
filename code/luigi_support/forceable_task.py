@@ -1,26 +1,33 @@
-import luigi
-import os
-import logging
-import shutil
 import inspect
 import logging
+import os
+import shutil
+from abc import ABCMeta, abstractmethod
+
+import luigi
+
 
 class ForceableTask(luigi.Task):
-    force = luigi.BoolParameter(significant=False, default=False,description="Force running of the task by removing its outputs")
+    __metaclass__ = ABCMeta
+    force = luigi.BoolParameter(significant=False, default=False,
+                                description="Force running of the task by removing its outputs")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.force is True:
             self.remove_outputs()
-            
+
     def remove_outputs(self):
-        if hasattr(self,'outputs'):
-            for out in self.outputs:
-                if out.exists():
-                    if out.isdir():
-                        shutil.rmtree(out.path)
-                    else:
-                        os.remove(out.path)
+        for out in self.output():
+            if out.exists():
+                if out.isdir():
+                    shutil.rmtree(out.path)
+                else:
+                    os.remove(out.path)
+
+    @abstractmethod
+    def run_internal(self):
+        raise NotImplementedError()
 
     def run(self):
         try:

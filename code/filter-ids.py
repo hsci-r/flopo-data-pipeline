@@ -1,47 +1,49 @@
 #!/usr/bin/env python3
-import os
-import csv
-import ijson.backends.yajl2_cffi as ijson
-import json
-import glob
 import argparse
+import csv
+import glob
+import json
 import logging
+import os
+
+import ijson.backends.yajl2_cffi as ijson
 
 logging.basicConfig(level=logging.INFO)
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i","--input-directory",help="input directory",required=True)
-    parser.add_argument("-f","--filter-csv",help="filter CSV",required=True)
-    parser.add_argument("-o","--output",help="output json file",required=True)
-    return(parser.parse_args())
+    parser.add_argument("-i", "--input-directory", help="input directory", required=True)
+    parser.add_argument("-f", "--filter-csv", help="filter CSV", required=True)
+    parser.add_argument("-o", "--output", help="output json file", required=True)
+    return parser.parse_args()
 
 
 def main() -> None:
     args = parse_arguments()
     filter = set()
-    with open(args.filter_csv) as inf:
-        cr = csv.reader(inf)
-        for row in cr:
+    with open(args.filter_csv) as input_file:
+        csv_input = csv.reader(input_file)
+        for row in csv_input:
             filter.add(row[0])
-    logging.info(f"Filter has {len(filter)} identifiers")
-    with open(args.output,'w') as ow:
-        ow.write('{ "data": [\n')
+    logging.info("Filter has %d identifiers", len(filter))
+    with open(args.output, 'w') as output_file:
+        output_file.write('{ "data": [\n')
         first = True
-        for file in glob.glob(os.path.join(args.input_directory,"**","*.json"),recursive=True):
-            logging.info(f"Processing {file}...")
-            with open(file) as af:
-                for article in ijson.items(af, 'data.item',use_float=True):
+        for file in glob.glob(os.path.join(args.input_directory, "**", "*.json"), recursive=True):
+            logging.info("Processing %s...", file)
+            with open(file) as input_file:
+                for article in ijson.items(input_file, 'data.item', use_float=True):
                     year_published = int(article['datePublished'][:4])
-                    if article['id'] not in filter and article['language']=='fi' and year_published<2011:
-                        if first == True:
+                    if article['id'] not in filter and article['language'] == 'fi' and year_published < 2011:
+                        if first is True:
                             first = False
                         else:
-                            ow.write(",\n")
-                        ow.write(json.dumps(article))
+                            output_file.write(",\n")
+                        output_file.write(json.dumps(article))
 
-	            
-        ow.write(']}')
+        output_file.write(']}')
+
 
 if __name__ == '__main__':
     main()
