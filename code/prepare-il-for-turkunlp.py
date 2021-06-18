@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Script to parse IL into the TurkuNLP input format
 """
-
-import os
-import logging
-import json
-import regex
 import glob
 import functools
 import multiprocessing
 import itertools
 import argparse
-from utils.clean_text import clean_text
+import os
+import logging
+import json
 from typing import Optional,Any
+import regex
+from utils.clean_text import clean_text
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,7 +31,13 @@ class Article:
 
 def parse_body(node: Any) -> str:
     content = node['text'] if 'text' in node else ''
-    if 'items' in node:
+    if node['type']=='list':
+        for entry in node['items']:
+            content += '\n * '
+            for child in entry:
+                content += parse_body(child)
+        content += '\n'
+    elif 'items' in node:
         for child in node['items']:
             content += parse_body(child)
     #if node['type']=='image' and 'caption' in node['properties']:
@@ -42,17 +47,24 @@ def parse_body(node: Any) -> str:
     return content
 
 def yield_article(file: str):
-    id = os.path.basename(file)   
-    with open(file) as ir:
-        html = ir.read()
-        article = json.loads(regex.search(r'({"article_id":.*}),"lastUpdated":\d+}},"authorInfo":',html).group(1))
-        headline = clean_text(article['title'])
-        lead = clean_text(article['lead']) if article['lead']!='' else None
-        body = ""
-        for elem in article['body']:
-            body += parse_body(elem)
-        body = clean_text(body)
-        return Article(id,headline,lead,body)
+    try:
+        id = os.path.basename(file)   
+        with open(file) as ir:
+            html = ir.read()
+            match = regex.search(r'({"article_id":.*}),"lastUpdated":\d+}},"authorInfo":',html)
+            if match is None:
+                logging.error("Couldn't find article json in %s.",file)
+                return None
+            article = json.loads(match.group(1))
+            headline = clean_text(article['title'])
+            lead = clean_text(article['lead']) if article['lead']!='' else None
+            body = ""
+            for elem in article['body']:
+                body += parse_body(elem)
+            body = clean_text(body)
+            return Article(id,headline,lead,body)
+    except:
+        logging.exception("Error processing %s",id)
 
 def process(prefix: int,input_files: list[str], output_directory: str, split: int):
     current_output = None
@@ -60,19 +72,20 @@ def process(prefix: int,input_files: list[str], output_directory: str, split: in
     try:
         for input_file in input_files:
             article = yield_article(input_file)
-            if i % split == 0:
-                if current_output is not None:
-                    current_output.close()
-                logging.info("Creating chunk %s-%d.",prefix,i)
-                current_output = open(os.path.join(output_directory,f"chunk-{prefix}-{i}.txt"),"w")
-            if article.title is not None:
-                current_output.write(f'###C: {article.id}_title\n')
-                current_output.write(article.title)
+            if article is not None:
+                if i % split == 0:
+                    if current_output is not None:
+                        current_output.close()
+                    logging.info("Creating chunk %s-%d.",prefix,i)
+                    current_output = open(os.path.join(output_directory,f"chunk-{prefix}-{i}.txt"),"w")
+                if article.title is not None:
+                    current_output.write(f'###C: {article.id}_title\n')
+                    current_output.write(article.title)
+                    current_output.write('\n\n')
+                current_output.write(f'###C: {article.id}_body\n')
+                current_output.write(article.body)
                 current_output.write('\n\n')
-            current_output.write(f'###C: {article.id}_body\n')
-            current_output.write(article.body)
-            current_output.write('\n\n')
-            i += 1
+                i += 1
     finally:
         if current_output is not None:
             current_output.close()
