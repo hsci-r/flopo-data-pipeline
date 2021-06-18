@@ -2,20 +2,20 @@ name := "conll-csv-octavo-indexer"
 
 version := "0.1"
 
-scalaVersion := "2.13.5"
+scalaVersion := "2.13.6"
 
 libraryDependencies ++= Seq(
-  "org.rogach" %% "scallop" % "4.0.2",
+  "org.rogach" %% "scallop" % "4.0.3",
   "com.univocity" % "univocity-parsers" % "2.9.1",
 
-  "org.json4s" %% "json4s-native" % "3.7.0-M15",
-  "fi.hsci" %% "octavo-indexer" % "1.2.2",
-  "org.apache.lucene" % "lucene-core" % "8.8.2",
+  "org.json4s" %% "json4s-native" % "4.0.0",
+  "fi.hsci" %% "octavo-indexer" % "1.2.3",
+  "org.apache.lucene" % "lucene-core" % "8.9.0",
 
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "org.slf4j" % "log4j-over-slf4j" % "1.7.30",
-  "org.scala-lang.modules" %% "scala-java8-compat" % "1.0.0-RC1",
+  "org.slf4j" % "log4j-over-slf4j" % "1.7.31",
+  "org.scala-lang.modules" %% "scala-java8-compat" % "1.0.0",
   "junit" % "junit" % "4.13.2" % "test"
 )
 
@@ -25,7 +25,7 @@ resolvers ++= Seq(
 
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
-assemblyOption in assembly := (assemblyOption in assembly).value.copy(prependShellScript = Some(defaultUniversalScript(shebang = true)))
+ThisBuild / assemblyPrependShellScript := Some(defaultUniversalScript(shebang = true))
 
 assemblyOutputPath in assembly := file("conll-csv-indexer")
 
