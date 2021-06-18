@@ -53,7 +53,7 @@ def parse_body(node: Any) -> str:
     return content
 
 def yield_article(file: str):
-    id = os.path.basename(file)   
+    id = os.path.basename(file)[:-5]
     try:
         with open(file) as ir:
             html = ir.read()
