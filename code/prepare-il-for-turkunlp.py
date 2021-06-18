@@ -37,6 +37,12 @@ def parse_body(node: Any) -> str:
             for child in entry:
                 content += parse_body(child)
         content += '\n'
+    elif node['type']=='list-ordered':
+        for index,entry in enumerate(node['items']):
+            content += f'\n {index+1}. '
+            for child in entry:
+                content += parse_body(child)
+        content += '\n'        
     elif 'items' in node:
         for child in node['items']:
             content += parse_body(child)
@@ -47,8 +53,8 @@ def parse_body(node: Any) -> str:
     return content
 
 def yield_article(file: str):
+    id = os.path.basename(file)   
     try:
-        id = os.path.basename(file)   
         with open(file) as ir:
             html = ir.read()
             match = regex.search(r'({"article_id":.*}),"lastUpdated":\d+}},"authorInfo":',html)
