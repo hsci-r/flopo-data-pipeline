@@ -3,11 +3,10 @@ package fi.hsci
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
 import org.joda.time.format.ISODateTimeFormat
-import org.json4s
-import org.json4s.native.JsonParser.{FieldStart, Parser, parse, _}
-import org.json4s.{JArray, JField, JObject, JString, _}
+import org.json4s.native.JsonParser.{Parser, parse, _}
+import org.json4s.{JString, _}
 
-import java.io.{File, FileInputStream, InputStreamReader, PrintWriter}
+import java.io.{File, FileInputStream, InputStreamReader}
 import java.nio.file.FileSystems
 import scala.collection.mutable
 import scala.compat.java8.StreamConverters._
@@ -48,8 +47,9 @@ object ILMetadataIndexer extends OctavoIndexer {
       if (documentId!=lastDocumentId) {
         lastDocumentId = documentId
         r.clean()
-        if (!articleInfos.contains(documentId)) throw new IllegalArgumentException("Unknown documentId")
-        articleInfos(documentId).populate(r)
+        if (!articleInfos.contains(documentId))
+          logger.error(s"Unknown documentId $documentId. It's metadata will be wrong! Continuing only so that you can see all such errors")
+        else articleInfos(documentId).populate(r)
       }
       iw.addDocument(r.d)
     }

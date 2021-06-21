@@ -31,7 +31,7 @@ object STTMetadataIndexer extends OctavoIndexer {
     }
   }
 
-  case class ArticleInfo(id: String, startDate: String, modifiedDate: String, version: String, urgency: String, genre: String, creditline: String, byline: String, subjects: scala.collection.Seq[String]) {
+  case class ArticleInfo(id: String, startDate: String, modifiedDate: String, version: String, urgency: Int, genre: String, creditline: String, byline: String, subjects: scala.collection.Seq[String]) {
     val url = s"https://a3s.fi/flopo-stt-${id.last}/$id.html"
     def populate(r: Reuse): Unit = {
       r.clean()
@@ -39,7 +39,7 @@ object STTMetadataIndexer extends OctavoIndexer {
       r.creationTime.setValue(startDate)
       r.lastModified.setValue(modifiedDate)
       r.version.setValue(version)
-      r.urgency.setValue(urgency.toInt)
+      r.urgency.setValue(urgency)
       r.genre.setValue(genre)
       r.creditline.setValue(creditline)
       r.byline.setValue(byline)
@@ -116,7 +116,7 @@ object STTMetadataIndexer extends OctavoIndexer {
         case _ =>
       }
       fis.close()
-      ArticleInfo(id,timePublished,timeModified,version,urgency,genre,if (creditline=="") "uncredited" else creditline,if (byline == "") "anonymous" else byline,subjects)
+      ArticleInfo(id,timePublished,timeModified,version,urgency.toInt,genre,if (creditline=="") "uncredited" else creditline,if (byline == "") "anonymous" else byline,subjects)
     }
   }
 
@@ -132,8 +132,9 @@ object STTMetadataIndexer extends OctavoIndexer {
       if (documentId!=lastDocumentId) {
         lastDocumentId = documentId
         r.clean()
-        if (!articleInfo.contains(documentId)) throw new IllegalArgumentException("Unknown documentId")
-        articleInfo(documentId).populate(r)
+        if (!articleInfo.contains(documentId))
+          logger.error(s"Unknown documentId $documentId. It's metadata will be wrong! Continuing only so that you can see all such errors")
+        else articleInfo(documentId).populate(r)
       }
       iw.addDocument(r.d)
     }
