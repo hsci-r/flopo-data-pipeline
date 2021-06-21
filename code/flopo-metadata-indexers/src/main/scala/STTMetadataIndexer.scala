@@ -2,13 +2,13 @@ package fi.hsci
 
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
-import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
+import org.joda.time.format.DateTimeFormat
 
 import java.io.{File, FileInputStream}
 import java.nio.file.FileSystems
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.StreamConverters._
+import scala.compat.java8.StreamConverters._
 import XMLEventReaderSupport.{EvComment, EvElemEnd, EvElemStart, EvEntityRef, EvEvent, EvText, getXMLEventReader}
 import org.joda.time.DateTimeZone
 
@@ -159,10 +159,10 @@ object STTMetadataIndexer extends OctavoIndexer {
     piw = iw(opts.index() + "/paragraph_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     aiw = iw(opts.index() + "/document_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     var i = 0
-    opts.directories().to(LazyList).flatMap(d => getFileTree(new File(d))).filter(_.getName.endsWith(".xml")).asJavaSeqStream.parallel.forEach(file => {
+    opts.directories().to(LazyList).flatMap(d => getFileTree(new File(d))).seqStream.parallel.filter(_.getName.endsWith(".xml")).forEach(file => {
       val ai = ArticleInfo(file)
       articleInfo.synchronized(articleInfo.put(ai.id,ai))
-      if ((i & 1024) == 0) logger.info(s"Processed ${ai.id}.")
+      if ((i & 32767) == 0) logger.info(s"Processed ${ai.id}.")
       i+=1
     })
     var tasks = Seq(
