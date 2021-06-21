@@ -2,14 +2,15 @@ package fi.hsci
 
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexWriter}
 import org.apache.lucene.store.MMapDirectory
-import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.format.{DateTimeFormat, ISODateTimeFormat}
 
 import java.io.{File, FileInputStream}
 import java.nio.file.FileSystems
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.compat.java8.StreamConverters._
+import scala.jdk.StreamConverters._
 import XMLEventReaderSupport.{EvComment, EvElemEnd, EvElemStart, EvEntityRef, EvEvent, EvText, getXMLEventReader}
+import org.joda.time.DateTimeZone
 
 import scala.xml.parsing.XhtmlEntities
 
@@ -19,8 +20,8 @@ object STTMetadataIndexer extends OctavoIndexer {
     val d = new FluidDocument()
     val url = new StringSDVFieldPair("url").r(d)
     val section = new StringSDVFieldPair("section").r(d)
-    val creationTime = new LongPointSDVDateTimeFieldPair("time_created",ISODateTimeFormat.dateTimeNoMillis).r(d)
-    val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",ISODateTimeFormat.dateTimeNoMillis).r(d)
+    val creationTime = new LongPointSDVDateTimeFieldPair("time_created",DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))).r(d)
+    val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))).r(d)
     val version = new StringSDVFieldPair("version").r(d)
     val urgency = new IntPointNDVFieldPair("urgency").r(d)
     val genre = new StringSDVFieldPair("genre").r(d)
@@ -157,9 +158,12 @@ object STTMetadataIndexer extends OctavoIndexer {
     dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap()) else null
     piw = iw(opts.index() + "/paragraph_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     aiw = iw(opts.index() + "/document_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
-    opts.directories().toIndexedSeq.flatMap(d => getFileTree(new File(d))).parStream.filter(_.getName.endsWith(".xml")).forEach(file => {
+    var i = 0
+    opts.directories().to(LazyList).flatMap(d => getFileTree(new File(d))).filter(_.getName.endsWith(".xml")).asJavaSeqStream.parallel.forEach(file => {
       val ai = ArticleInfo(file)
       articleInfo.synchronized(articleInfo.put(ai.id,ai))
+      if ((i & 1024) == 0) logger.info(s"Processed ${ai.id}.")
+      i+=1
     })
     var tasks = Seq(
       runInOtherThread(
