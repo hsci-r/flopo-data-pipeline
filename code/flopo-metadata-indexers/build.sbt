@@ -4,13 +4,17 @@ version := "0.1"
 
 scalaVersion := "2.13.6"
 
+javacOptions ++= Seq("--release", "11")
+
+scalacOptions ++= Seq("-release", "11")
+
 libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "4.0.3",
   "com.univocity" % "univocity-parsers" % "2.9.1",
 
-  "org.scala-lang.modules" %% "scala-xml" % "2.0.0-M1",
+  "org.scala-lang.modules" %% "scala-xml" % "2.0.0",
   "org.json4s" %% "json4s-native" % "4.0.0",
-  "fi.hsci" %% "octavo-indexer" % "1.2.3",
+  "fi.hsci" %% "octavo-indexer" % "1.2.4",
   "org.apache.lucene" % "lucene-core" % "8.9.0",
   "org.apache.lucene" % "lucene-analyzers-common" % "8.9.0",
 
