@@ -42,13 +42,17 @@ object STTMetadataIndexer extends OctavoIndexer {
       val startDateMillis = try {
         dtf.parseMillis(startDate)
       } catch {
-        case _: IllegalInstantException => dtf.parseMillis(startDate.replace("T03:","T04:"))
+        case _: IllegalInstantException =>
+          logger.warn("Correcting incorrect time: "+startDate)
+          dtf.parseMillis(startDate.replace("T03:","T04:"))
       }
       r.creationTime.setValue(startDateMillis,startDate)
       val modifiedDateMillis = try {
         dtf.parseMillis(modifiedDate)
       } catch {
-        case _: IllegalInstantException => dtf.parseMillis(modifiedDate.replace("T03:","T04:"))
+        case _: IllegalInstantException =>
+          logger.warn("Correcting incorrect time: "+modifiedDate)
+          dtf.parseMillis(modifiedDate.replace("T03:","T04:"))
       }
       r.lastModified.setValue(modifiedDateMillis,modifiedDate)
       r.version.setValue(version)
