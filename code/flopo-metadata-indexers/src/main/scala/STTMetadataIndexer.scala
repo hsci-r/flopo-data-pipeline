@@ -10,7 +10,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.compat.java8.StreamConverters._
 import XMLEventReaderSupport.{EvComment, EvElemEnd, EvElemStart, EvEntityRef, EvEvent, EvText, getXMLEventReader}
-import org.joda.time.DateTimeZone
+import org.joda.time.{DateTimeZone, IllegalInstantException}
 
 import scala.xml.parsing.XhtmlEntities
 
@@ -20,8 +20,8 @@ object STTMetadataIndexer extends OctavoIndexer {
     val d = new FluidDocument()
     val url = new StringSDVFieldPair("url").r(d)
     val section = new StringSDVFieldPair("section").r(d)
-    val creationTime = new LongPointSDVDateTimeFieldPair("time_created",DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))).r(d)
-    val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))).r(d)
+    val creationTime = new LongPointSDVFieldPair("time_created").r(d)
+    val lastModified = new LongPointSDVFieldPair("time_modified").r(d)
     val version = new StringSDVFieldPair("version").r(d)
     val urgency = new IntPointNDVFieldPair("urgency").r(d)
     val genre = new StringSDVFieldPair("genre").r(d)
@@ -32,13 +32,25 @@ object STTMetadataIndexer extends OctavoIndexer {
     }
   }
 
+  val dtf = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))
+
   case class ArticleInfo(id: String, startDate: String, modifiedDate: String, version: String, urgency: Int, genre: String, creditline: String, byline: String, subjects: scala.collection.Seq[String]) {
-    val url = s"https://a3s.fi/flopo-stt-${id.last}/$id.html"
     def populate(r: Reuse): Unit = {
       r.clean()
+      val url = s"https://a3s.fi/flopo-stt-${id.last}/$id.html"
       r.url.setValue(url)
-      r.creationTime.setValue(startDate)
-      r.lastModified.setValue(modifiedDate)
+      val startDateMillis = try {
+        dtf.parseMillis(startDate)
+      } catch {
+        case _: IllegalInstantException => dtf.parseMillis(startDate.replace("T03:","T04:"))
+      }
+      r.creationTime.setValue(startDateMillis,startDate)
+      val modifiedDateMillis = try {
+        dtf.parseMillis(modifiedDate)
+      } catch {
+        case _: IllegalInstantException => dtf.parseMillis(modifiedDate.replace("T03:","T04:"))
+      }
+      r.lastModified.setValue(modifiedDateMillis,modifiedDate)
       r.version.setValue(version)
       r.urgency.setValue(urgency)
       r.genre.setValue(genre)

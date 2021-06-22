@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
 
   "org.scala-lang.modules" %% "scala-xml" % "2.0.0",
   "org.json4s" %% "json4s-native" % "4.0.0",
-  "fi.hsci" %% "octavo-indexer" % "1.2.4",
+  "fi.hsci" %% "octavo-indexer" % "1.2.6",
   "org.apache.lucene" % "lucene-core" % "8.9.0",
   "org.apache.lucene" % "lucene-analyzers-common" % "8.9.0",
 
