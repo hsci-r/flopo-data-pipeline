@@ -34,7 +34,7 @@ object STTMetadataIndexer extends OctavoIndexer {
 
   val dtf = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss").withZone(DateTimeZone.forID("Europe/Helsinki"))
 
-  case class ArticleInfo(id: String, startDate: String, modifiedDate: String, version: String, urgency: Int, genre: String, creditline: String, byline: String, subjects: scala.collection.Seq[String]) {
+  case class ArticleInfo(id: String, startDate: String, modifiedDate: String, section: String, version: String, urgency: Int, genre: String, creditline: String, byline: String, subjects: scala.collection.Seq[String]) {
     def populate(r: Reuse): Unit = {
       r.clean()
       val url = s"https://a3s.fi/flopo-stt-${id.last}/$id.html"
@@ -55,6 +55,7 @@ object STTMetadataIndexer extends OctavoIndexer {
           dtf.parseMillis(modifiedDate.replace("T03:","T04:"))
       }
       r.lastModified.setValue(modifiedDateMillis,modifiedDate)
+      r.section.setValue(section)
       r.version.setValue(version)
       r.urgency.setValue(urgency)
       r.genre.setValue(genre)
@@ -101,7 +102,7 @@ object STTMetadataIndexer extends OctavoIndexer {
       var urgency=""
       var creditline = ""
       var byline = ""
-      var department = ""
+      var section = ""
       var genre = ""
       val subjects = new ArrayBuffer[String]
       while (xml.hasNext) xml.next() match {
@@ -123,7 +124,7 @@ object STTMetadataIndexer extends OctavoIndexer {
         case EvElemStart(_,"by",_) => byline = readContents("by")
         case EvElemStart(_,"subject",attrs) =>
           val qcode = attrs("qcode")
-          if (qcode.startsWith("sttdepartment:")) department = readContents("subject")
+          if (qcode.startsWith("sttdepartment:")) section = readContents("subject")
           else subjects += readContents("subject")
         case EvElemStart(_,"genre",attrs) =>
           val qcode = attrs("qcode")
@@ -133,7 +134,7 @@ object STTMetadataIndexer extends OctavoIndexer {
         case _ =>
       }
       fis.close()
-      ArticleInfo(id,timePublished,timeModified,version,urgency.toInt,genre,if (creditline=="") "uncredited" else creditline,if (byline == "") "anonymous" else byline,subjects)
+      ArticleInfo(id,timePublished,timeModified,section,version,urgency.toInt,genre,if (creditline=="") "uncredited" else creditline,if (byline == "") "anonymous" else byline,subjects)
     }
   }
 
