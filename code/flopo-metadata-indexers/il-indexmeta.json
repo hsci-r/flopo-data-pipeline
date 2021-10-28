@@ -1,6 +1,6 @@
 {
   "name": "Iltalehti",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "contentField": "text",
   "contentTokensField": "nr_tokens",
   "indexType": "MMapDirectory",
@@ -153,6 +153,11 @@
     },
     "section": {
       "description": "news section",
+      "indexedAs": "string",
+      "storedAs": "sortedDocValues"
+    },
+    "subsection": {
+      "description": "news subsection",
       "indexedAs": "string",
       "storedAs": "sortedDocValues"
     },
