@@ -10,6 +10,8 @@ import java.io.{File, FileInputStream, InputStreamReader}
 import java.nio.file.FileSystems
 import scala.collection.mutable
 import scala.compat.java8.StreamConverters._
+import scala.io.Source
+import scala.util.Using
 
 object ILMetadataIndexer extends OctavoIndexer {
 
@@ -17,6 +19,7 @@ object ILMetadataIndexer extends OctavoIndexer {
     val d = new FluidDocument()
     val url = new StringSDVFieldPair("url").r(d)
     val section = new StringSDVFieldPair("section").r(d)
+    val subsection = new StringSDVFieldPair("subsection").r(d)
     val creationTime = new LongPointSDVDateTimeFieldPair("time_created",ISODateTimeFormat.dateTimeNoMillis).r(d)
     //val authorFields = new TextSSDVFieldPair("author").o(d)
     def clean() {
@@ -24,13 +27,13 @@ object ILMetadataIndexer extends OctavoIndexer {
     }
   }
 
-  case class ArticleInfo(id: String, time_created: String, section: String,authors: Seq[String]) {
-    val url = s"https://www.iltalehti.fi/${section}/${id}"
+  case class ArticleInfo(id: String, time_created: String, subsection: String,authors: Seq[String]) {
+    val url = s"https://www.iltalehti.fi/${subsection}/${id}"
     def populate(r: Reuse): Unit = {
       r.clean()
       r.url.setValue(url)
       r.creationTime.setValue(time_created)
-      r.section.setValue(section)
+      r.subsection.setValue(subsection)
       authors.foreach(new TextSSDVFieldPair("author").o(r.d).setValue)
     }
   }
@@ -49,7 +52,12 @@ object ILMetadataIndexer extends OctavoIndexer {
         r.clean()
         if (!articleInfos.contains(documentId))
           logger.error(s"Unknown documentId $documentId. It's metadata will be wrong! Continuing only so that you can see all such errors")
-        else articleInfos(documentId).populate(r)
+        else
+          articleInfos(documentId).populate(r)
+        if (!articleSections.contains(documentId))
+          logger.error(s"No section info for documentId $documentId. It's metadata will be wrong! Continuing only so that you can see all such errors")
+        else
+          r.section.setValue(articleSections(documentId))
       }
       iw.addDocument(r.d)
     }
@@ -58,6 +66,7 @@ object ILMetadataIndexer extends OctavoIndexer {
   var hasDocumentParts = false
   var siw, piw, dpiw, aiw = null.asInstanceOf[IndexWriter]
 
+  val articleSections = new mutable.HashMap[String,String]
   val articleInfos = new mutable.HashMap[String,ArticleInfo]
 
   def main(args: Array[String]): Unit = {
@@ -72,7 +81,20 @@ object ILMetadataIndexer extends OctavoIndexer {
     dpiw = if (hasDocumentParts) iw(opts.index() + "/document_part_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap()) else null
     piw = iw(opts.index() + "/paragraph_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
     aiw = iw(opts.index() + "/document_metadata_index", null, opts.indexMemoryMb() / parts, !opts.noMmap())
-    opts.directories().toIndexedSeq.flatMap(d => getFileTree(new File(d))).parStream.filter(_.getName.endsWith(".json")).forEach(file => {
+    opts.directories().toIndexedSeq.flatMap(d => getFileTree(new File(d))).parStream.forEach(file => if (file.getName.endsWith(".html")) {
+      val content = Using(Source.fromFile(file))(_.mkString).get
+      "(\\{\"article_id\":.*}),\"lastUpdated\":\\d+}},\"authorInfo\":".r.findFirstMatchIn(content) match {
+        case Some(m) =>
+          val obj = parse(m.group(1))
+          val id = (obj \ "article_id").asInstanceOf[JString].values
+          var c = obj \ "category"
+          while ((c \ "parent_category").isInstanceOf[JObject])
+              c = c \ "parent_category"
+          val section = (c \ "category_name").asInstanceOf[JString].values
+          articleSections.synchronized(articleSections.put(id,section))
+        case _ => logger.error(s"No section info found in $file.")
+      }
+    } else if (file.getName.endsWith(".json")) {
       parse(new InputStreamReader(new FileInputStream(file)), (p: Parser) => {
         var token = p.nextToken // OpenArr
         token = p.nextToken // OpenObj/CloseArr
