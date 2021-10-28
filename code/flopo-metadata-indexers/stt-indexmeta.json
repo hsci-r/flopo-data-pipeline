@@ -1,6 +1,6 @@
 {
   "name": "STT 1992-2018",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "contentField": "text",
   "contentTokensField": "nr_tokens",
   "indexType": "MMapDirectory",
