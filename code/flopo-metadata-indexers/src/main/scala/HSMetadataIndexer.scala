@@ -17,7 +17,7 @@ object HSMetadataIndexer extends OctavoIndexer {
     val d = new FluidDocument()
     val url = new StringSDVFieldPair("url").r(d)
     val section = new StringSDVFieldPair("section").r(d)
-    val storyLogo = new StringSDVFieldPair("story_logo").o(d)
+    val storyLogo = new TextSDVFieldPair("story_logo",lowerCasingKeywordAnalyzer).o(d)
     val creationTime = new LongPointSDVDateTimeFieldPair("time_created",DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZZ")).r(d)
     val lastModified = new LongPointSDVDateTimeFieldPair("time_modified",DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZZ")).r(d)
     val byLine = new TextSDVFieldPair("byline").o(d)
