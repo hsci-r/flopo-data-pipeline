@@ -11,7 +11,7 @@ import java.nio.file.FileSystems
 import scala.collection.mutable
 import scala.compat.java8.StreamConverters._
 import scala.io.Source
-import scala.util.Using
+import scala.util.{Failure, Success, Try, Using}
 
 object ILMetadataIndexer extends OctavoIndexer {
 
@@ -85,13 +85,17 @@ object ILMetadataIndexer extends OctavoIndexer {
       val content = Using(Source.fromFile(file))(_.mkString).get
       "(\\{\"article_id\":.*}),\"lastUpdated\":\\d+}},\"authorInfo\":".r.findFirstMatchIn(content) match {
         case Some(m) =>
-          val obj = parse(m.group(1))
-          val id = (obj \ "article_id").asInstanceOf[JString].values
-          var c = obj \ "category"
-          while ((c \ "parent_category").isInstanceOf[JObject])
-              c = c \ "parent_category"
-          val section = (c \ "category_name").asInstanceOf[JString].values
-          articleSections.synchronized(articleSections.put(id,section))
+          Try(parse(m.group(1))) match {
+            case Success(obj) =>
+              val id = (obj \ "article_id").asInstanceOf[JString].values
+              var c = obj \ "category"
+              while ((c \ "parent_category").isInstanceOf[JObject])
+                c = c \ "parent_category"
+              val section = (c \ "category_name").asInstanceOf[JString].values
+              articleSections.synchronized(articleSections.put(id,section))
+            case Failure(e) =>
+              logger.error(s"Error parsing section info out of $file.",e)
+          }
         case _ => logger.error(s"No section info found in $file.")
       }
     } else if (file.getName.endsWith(".json")) {
